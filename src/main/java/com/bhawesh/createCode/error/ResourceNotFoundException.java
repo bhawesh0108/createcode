@@ -12,11 +12,11 @@ import lombok.experimental.FieldDefaults;
 @Setter
 public class ResourceNotFoundException extends RuntimeException{
     String resource;
-    Long resourceId;
+    String resourceId;
 
     public ResourceNotFoundException(String resource){
         this.resource = resource;
-        this.resourceId = 0L;
+        this.resourceId = "";
     }
 
 }

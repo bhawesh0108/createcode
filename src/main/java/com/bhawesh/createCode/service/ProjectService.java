@@ -9,13 +9,13 @@ import java.util.List;
 
 
 public interface ProjectService {
-    List<ProjectSummaryResponse> getAllUserProjects(Long userId);
+    List<ProjectSummaryResponse> getAllUserProjects();
 
-    ProjectResponse getProject(Long userId, Long id);
+    ProjectResponse getProject(Long id);
 
-    ProjectResponse createProject(Long userId, ProjectRequest request);
+    ProjectResponse createProject(ProjectRequest request);
 
-    ProjectResponse updateProject(Long id, ProjectRequest request, Long userId);
+    ProjectResponse updateProject(Long id, ProjectRequest request);
 
-    Void softDelete(Long id, Long userId);
+    Void softDelete(Long id);
 }

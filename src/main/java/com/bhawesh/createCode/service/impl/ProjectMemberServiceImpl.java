@@ -14,6 +14,7 @@ import com.bhawesh.createCode.repository.ProjectRepository;
 import com.bhawesh.createCode.repository.UserRepository;
 import com.bhawesh.createCode.service.ProjectMemberService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -35,8 +36,12 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     @Autowired
     UserRepository userRepository;
 
+    @Autowired
+    AuthServiceImpl authService;
+
     @Override
-    public List<MemberResponse> getProjectMembers(Long projectId, Long userId) {
+    @PreAuthorize("@security.canViewMembers(#projectId)")
+    public List<MemberResponse> getProjectMembers(Long projectId) {
         List<MemberResponse> projectMembersResponseList = new ArrayList<>();
         List<ProjectMember> projectMembers = projectMemberRepository.findByIdProjectId(projectId);
         projectMembersResponseList.addAll(projectMembers.stream().map(projectMember->projectMemberMapper.toMemberResponsefromProjectMember(projectMember)).toList());
@@ -44,13 +49,10 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
     @Override
-    public MemberResponse inviteProjectMember(Long projectId, ProjectMemberRequest request, Long userId) {
-
+    @PreAuthorize("@security.canManageMembers(#projectId)")
+    public MemberResponse inviteProjectMember(Long projectId, ProjectMemberRequest request) {
+        Long userId = authService.getCurrentLoginUserId();
         Project project = getAccessibleUserProject(userId,projectId);
-//        if(!project.getOwner().getId().equals(userId)){
-//            throw new RuntimeException("User is not allowed to add member to this project");
-//        }
-
         User invitee = userRepository.findByUsername(request.username()).orElseThrow(()->new ResourceNotFoundException(request.username()));
 
         if(invitee.getId().equals(userId)){
@@ -64,39 +66,24 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
         ProjectMember projectMember = ProjectMember.builder().id(projectMemberId).user(invitee).project(project).projectRole(request.role()).invitedAt(Instant.now()).build();
         projectMemberRepository.save(projectMember);
-
         return projectMemberMapper.toMemberResponsefromProjectMember(projectMember);
     }
 
     @Override
-    public MemberResponse updateMemberRole(Long projectId, Long memberId, UpdateMemberRoleRequest request, Long userId) {
-
-        Project project = getAccessibleUserProject(userId,projectId);
-//        if(!project.getOwner().getId().equals(userId)){
-//            throw new RuntimeException("Not Allowed");
-//        }
-
+    @PreAuthorize("@security.canManageMembers(#projectId)")
+    public MemberResponse updateMemberRole(Long projectId, Long memberId, UpdateMemberRoleRequest request) {
         ProjectMemberId projectMemberId = new ProjectMemberId(memberId,projectId);
         ProjectMember projectMember =  projectMemberRepository.findById(projectMemberId).orElseThrow();
-
         projectMember.setProjectRole(request.role());
         projectMemberRepository.save(projectMember);
-
         return projectMemberMapper.toMemberResponsefromProjectMember(projectMember);
     }
 
     @Override
-    public void deleteProjectMember(Long projectId, Long memberId, Long userId) {
-
-        Project project = getAccessibleUserProject(userId,projectId);
-//        if(!project.getOwner().getId().equals(userId))
-//        {
-//            throw new RuntimeException("Not Allowed");
-//        }
-
+    @PreAuthorize("@security.canManageMembers(#projectId)")
+    public void deleteProjectMember(Long projectId, Long memberId) {
         ProjectMemberId projectMemberId = new ProjectMemberId(memberId,projectId);
         projectMemberRepository.deleteById(projectMemberId);
-
     }
 
     private Project getAccessibleUserProject(Long userId, Long projectId){
